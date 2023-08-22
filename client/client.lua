@@ -7,6 +7,7 @@ local ChopPrompt
 local hasAlreadyEnteredMarker = false
 
 local ChopScenario = 'PROP_HUMAN_WOOD_CHOP'
+local ChopScenario = 'PROP_HUMAN_WOOD_CHOP'
 
 
 function SetupChopPrompt()
@@ -24,53 +25,34 @@ function SetupChopPrompt()
 end
 
 Citizen.CreateThread(function()
-    for z, x in pairs(Config.Stomps) do
-        while not HasModelLoaded(GetHashKey('p_stumpwoodsplit02x')) do
-            Wait(500)
-            modelrequest(GetHashKey('p_stumpwoodsplit02x'))
-        end
-        local stump = CreateObject(GetHashKey('p_stumpwoodsplit02x'), Config.Stomps[z]["Pos"].x,
-            Config.Stomps[z]["Pos"].y, Config.Stomps[z]["Pos"].z, true, true, false)
-        PlaceObjectOnGroundProperly(stump)
-        SetModelAsNoLongerNeeded(GetHashKey('p_stumpwoodsplit02x'))
-    end
-end)
-
-Citizen.CreateThread(function()
     SetupChopPrompt()
-    local SelectScenario
     while true do
         local t = 500
 
-        local DataStruct = DataView.ArrayBuffer(256 * 4)
-        local scenarios = Citizen.InvokeNative(0x345EC3B7EBDE1CB5, GetEntityCoords(PlayerPedId()), 1.5,
-            DataStruct:Buffer(), 10)
-        if scenarios and not hasAlreadyEnteredMarker then
-            for i = 1, scenarios do
-                local scenario = DataStruct:GetInt32(8 * i)
-                local scenario_hash = Citizen.InvokeNative(0xA92450B5AE687AAF, scenario) -- GetScenarioPointType
+		local DataStruct = DataView.ArrayBuffer(256 * 4)
+		local scenarios = Citizen.InvokeNative(0x345EC3B7EBDE1CB5, GetEntityCoords(PlayerPedId()), 1.0, DataStruct:Buffer(), 10)	-- GetScenarioPointsInArea
 
-                if GetHashKey(ChopScenario) == scenario_hash and not hasAlreadyEnteredMarker then
-                    hasAlreadyEnteredMarker = true
-                    if not IsPedActiveInScenario(PlayerPedId()) then
-                        PromptSetEnabled(ChopPrompt, true)
-                        PromptSetVisible(ChopPrompt, true)
+		if scenarios then
+            for i = 1, scenarios do
+              
+                local scenario = DataStruct:GetInt32(8 * i)
+                local scenario_hash = Citizen.InvokeNative(0xA92450B5AE687AAF, scenario)	-- GetScenarioPointType
+
+                for _, v in pairs(ChopScenarios) do
+                    if GetHashKey(v) == scenario_hash and not active then
+                        local label  = CreateVarString(10, 'LITERAL_STRING', Config.Texts['ObjectChop'])
+                        PromptSetActiveGroupThisFrame(ChopPrompts, label)
+                        
+                        if PromptHasHoldModeCompleted(ChopPrompt) then
+                            Citizen.Wait(500)
+                       -- verifica no server se tem machado, madeira
+                        local scenario = DataStruct:GetInt32(8 * i)
+                       TriggerServerEvent('woodstump:CheckAxe',scenario)
+                        end
                     end
-                    SelectScenario = scenario
+
                 end
             end
-        else
-            if not scenarios then
-                hasAlreadyEnteredMarker = false
-                PromptSetEnabled(ChopPrompt, false)
-                PromptSetVisible(ChopPrompt, false)
-            end
-        end
-
-        if PromptHasHoldModeCompleted(ChopPrompt) then
-            Citizen.Wait(100)
-            -- verifica no server se tem machado, madeira , configuravel
-            TriggerServerEvent('woodstump:CheckAxe', SelectScenario)
         end
 
         Citizen.Wait(t)
@@ -79,16 +61,23 @@ end)
 
 RegisterNetEvent('woodstump:Chop')
 AddEventHandler('woodstump:Chop', function(scenario)
-    active = true
+	active = true
 
-    TaskUseScenarioPoint(PlayerPedId(), scenario, '', -1.0, true, false, 0, false, -1.0, true)
-    Citizen.Wait(5000)
-    while IsPedActiveInScenario(PlayerPedId()) do
-        Citizen.Wait(200)
-    end
+	TaskUseScenarioPoint(PlayerPedId(), scenario, '' , -1.0, true, false, 0, false, -1.0, true)
+    
+	local progressbar = exports.progressbar:initiate() -- verificar 
+	progressbar.start(Config.Texts['chopping'], 15000, function ()
 
-    print('Call - AddFirewood')
-    TriggerServerEvent('woodstump:AddFirewood')
+		ClearPedTasks(PlayerPedId(), true)
+
+		TriggerServerEvent('woodstump:AddFirewood')
+
+        Wait(1000)
+
+        active = false
+
+	end, 'innercircle', Config.ProgressbarColor)
+
 end)
 
 

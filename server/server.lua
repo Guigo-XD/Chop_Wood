@@ -1,5 +1,7 @@
 RedEM = exports["redem_roleplay"]:RedEM()
 
+RedEM = exports["redem_roleplay"]:RedEM()
+
 data = {}
 TriggerEvent("redemrp_inventory:getData",function(call)
     data = call
@@ -11,14 +13,14 @@ AddEventHandler('woodstump:CheckAxe',function (scenario)
         local AxetemInfo = data.getItemData(Config.Axe)
         local AxeItemData = data.getItem(source, AxetemInfo.label)
 
-        if AxeItemData.ItemAmount >=1 then
+        if TotalAxeitem > 1 then
             local WoodItemInfo = data.getItemData(Config.Wood)
             local WoodItemData = data.getItem(source, WoodItemInfo.label)
         
-            if WoodItemData.ItemAmount >=1 then
-                TriggerClientEvent('woodstump:Chop',source,scenario)
-            else              
-                TriggerClientEvent("redem_roleplay:NotifyRight", source, 'você não possui '..WoodItemInfo.label..' para usar', 5)
+            if TotalWoodItem > 1 then
+                TriggerClientEvent('woodstump:Chop',scenario)
+            else
+                TriggerClientEvent("redemrp_notification:start", source, 'você não possui '..WoodItemInfo.label..' para usar', 5)
             end
     else         
         TriggerClientEvent("redem_roleplay:NotifyRight", source, 'você não possui '..AxetemInfo.label..' para usar', 5)
@@ -30,14 +32,14 @@ RegisterServerEvent('woodstump:AddFirewood')
 AddEventHandler("woodstump:AddFirewood", function()
    
         local WoodItemInfo = data.getItemData(Config.Wood)
-        local WoodItemData = data.getItem(source, WoodItemInfo.label)
+        local WoodItemData = data.getItem(source, Config.Wood)
         WoodItemData.RemoveItem(1)
-        TriggerClientEvent("redem_roleplay:NotifyRight", source, "Removido "..WoodItemInfo.label, 3, "success")      
-        
+        TriggerClientEvent("redemrp_notification:start", source, "Adicionado "..WoodItemInfo.label, 3, "success")
+
         local FirewoodItemInfo = data.getItemData(Config.Firewood)
-        local FirewoodItemData = data.getItem(source, FirewoodItemInfo.label)
+        local FirewoodItemData = data.getItem(source, Config.Firewood)
         FirewoodItemData.AddItem(2)
-        TriggerClientEvent("redem_roleplay:NotifyRight", source, "Adicionado "..FirewoodItemInfo.label, 3, "success")
+        TriggerClientEvent("redemrp_notification:start", source, "Adicionado "..FirewoodItemInfo.label, 3, "success")
 
        
 	
